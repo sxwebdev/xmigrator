@@ -42,7 +42,9 @@ jobs:
         if: always()
         with:
           name: checks-pg-${{ matrix.postgres }}
-          path: .artifacts/
+          path: |
+            .artifacts/
+            testdata/fuzz/
           include-hidden-files: true
 
   platforms:

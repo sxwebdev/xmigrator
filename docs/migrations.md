@@ -26,7 +26,7 @@ CREATE TABLE users (
 DROP TABLE users;
 ```
 
-The complete SQL script is executed without splitting it at semicolons. Empty SQL is only valid with an explicit directive. One leading UTF-8 BOM is removed; a repeated BOM is rejected. CRLF is normalized to LF. SHA-256 is computed over the complete normalized text, including comments and directives.
+The complete SQL script is executed without splitting it at semicolons. Empty SQL is only valid with an explicit directive. One leading UTF-8 BOM is removed; a repeated BOM is rejected. CRLF is normalized to LF, including repeated CR bytes immediately before LF. Standalone CR bytes are preserved because they do not terminate SQLite line comments. Normalizing an already normalized script leaves it unchanged. SHA-256 is computed over the complete normalized text, including comments and directives.
 
 ## Directives
 

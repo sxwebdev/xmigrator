@@ -23,6 +23,8 @@ type Source struct {
 
 type SourceOption func(*Source) error
 
+var crlf = regexp.MustCompile(`\r+\n`)
+
 // WithDialect explicitly selects lexical rules for source parsing.
 // An unspecified source dialect falls back to pgx in Snapshot and Validate;
 // built-in runners infer the driver dialect, while the CLI adapter requires an explicit dialect for validation.
@@ -159,7 +161,9 @@ func parseScriptForDialect(text string, direction Direction, dialect string) (Sc
 	if strings.HasPrefix(text, "\ufeff") {
 		return Script{}, fmt.Errorf("%w: repeated BOM", ErrInvalidSource)
 	}
-	text = strings.ReplaceAll(text, "\r\n", "\n")
+	// Remove the complete CR run before LF so normalization is idempotent.
+	// Preserve standalone CR: SQLite treats it as part of a line comment.
+	text = crlf.ReplaceAllString(text, "\n")
 	tokens, err := sqltext.ScanDialect(text, dialect)
 	if err != nil {
 		return Script{}, fmt.Errorf("%w: %w", ErrInvalidSource, err)
