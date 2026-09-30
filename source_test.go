@@ -2,6 +2,7 @@ package xmigrator_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"io/fs"
 	"testing"
@@ -178,6 +179,40 @@ func TestSQLValidation(t *testing.T) {
 	off := false
 	if e := x.ValidateSQL(x.Script{ForeignKeys: &off}, "pgx"); !errors.Is(e, x.ErrUnsafeSQL) {
 		t.Fatal(e)
+	}
+}
+
+func TestSourceLineEndingNormalization(t *testing.T) {
+	for _, tt := range []struct {
+		name, input, want string
+	}{
+		{"LF", "SELECT 1;\nSELECT 2;", "SELECT 1;\nSELECT 2;"},
+		{"CRLF", "SELECT 1;\r\nSELECT 2;", "SELECT 1;\nSELECT 2;"},
+		{"CR", "SELECT 1;\rSELECT 2;", "SELECT 1;\rSELECT 2;"},
+		{"CR_then_CRLF", "SELECT 1;\r\r\nSELECT 2;", "SELECT 1;\nSELECT 2;"},
+		{"CRLF_then_CR", "SELECT 1;\r\n\rSELECT 2;", "SELECT 1;\n\rSELECT 2;"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			files := fstest.MapFS{"1_x.up.sql": {Data: []byte(tt.input)}, "1_x.down.sql": {Data: []byte(tt.input)}}
+			s, err := x.NewSource(files, ".")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for range 2 {
+				m, err := s.Snapshot(t.Context())
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, script := range []x.Script{m[0].Up, m[0].Down} {
+					if script.SQL != tt.want || script.Checksum != sha256.Sum256([]byte(tt.want)) {
+						t.Fatalf("unexpected normalized script: %+v", script)
+					}
+				}
+				files["1_x.up.sql"].Data = []byte(m[0].Up.SQL)
+				files["1_x.down.sql"].Data = []byte(m[0].Down.SQL)
+			}
+		})
 	}
 }
 
