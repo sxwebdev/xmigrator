@@ -27,8 +27,8 @@ jobs:
     env:
       XMIGRATOR_TEST_PG_DSN: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.27.1'
           cache-dependency-path: '**/go.sum'
@@ -38,7 +38,7 @@ jobs:
       - run: go run tools/dev.go verify-install
       - run: go run tools/dev.go prove-regressions
       - run: go test . -run '^$' -fuzz FuzzSource -fuzztime 5s
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: checks-pg-${{ matrix.postgres }}
@@ -54,8 +54,8 @@ jobs:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.27.1'
           cache-dependency-path: '**/go.sum'
@@ -65,10 +65,10 @@ jobs:
   release-snapshot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.27.1'
           cache-dependency-path: '**/go.sum'
@@ -79,7 +79,7 @@ jobs:
           install-only: true
       - run: goreleaser check
       - run: goreleaser release --snapshot --clean --parallelism 2
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-snapshot
           path: .artifacts/release/

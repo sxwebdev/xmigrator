@@ -67,17 +67,30 @@ The [release workflow](../.github/workflows/release.yml):
 
 1. Validates the branch, requested version, manifests, licenses, and changelog.
 2. Runs the complete reusable CI workflow: PostgreSQL 14/17/18, macOS/Windows, coverage, install verification, regression proofs, fuzzing, and a GoReleaser snapshot.
-3. Extracts that version's release notes and builds every CLI target before publishing tags.
+3. Validates release history against the previous stable root tag and builds every CLI target before publishing tags.
 4. Creates all five module tags on the checked commit and sends them in one atomic Git push.
-5. Runs GoReleaser with the explicit root tag to publish one GitHub Release with archives and SHA-256 checksums.
+5. Runs GoReleaser with explicit current and previous root tags to publish one GitHub Release with archives and SHA-256 checksums, then updates Casks/xmigrator.rb on master.
 
-Only the publishing job receives contents:write. It uses the repository's GITHUB_TOKEN; no personal access token or GoReleaser Pro license is required. Run concurrency prevents two release workflows from publishing simultaneously. Repository rules must permit that token to create the release tags.
+Only the publishing job receives contents:write. It uses the repository's GITHUB_TOKEN; no personal access token or GoReleaser Pro license is required. Run concurrency prevents two release workflows from publishing simultaneously. Repository rules must permit that token to create release tags and commit the generated cask to master.
+
+GitHub release notes list commits in ascending order grouped into Features, Bug fixes, Performance, Refactoring, Documentation, Tests, Dependencies, Build & CI, and Other changes, followed by a Full changelog comparison link. Generated chore(cask) commits are excluded. CHANGELOG.md remains the manually maintained version summary and release preflight input; it does not replace the generated GitHub release body. Reruns replace that body instead of appending duplicate notes. The previous root tag must be an ancestor of the selected release commit; nested module tags are never used as the comparison baseline.
 
 Tags are never force-pushed. A tag pointing to another commit stops the workflow. A failed run can be rerun on the same commit: tags already pointing to it are reused. Once tags have been sent, modules may be installable even if the subsequent GitHub Release upload fails; rerun the failed workflow rather than moving tags. If the release already completed, issue a new version for changes.
 
 The workflow publishes the commit selected when it was dispatched, not a later master HEAD. If master advances while a failed release is being retried, rerun the original run to preserve that commit.
 
 ## Checking the published release
+
+The repository is its own Homebrew tap. Casks/xmigrator.rb is initially pinned to the verified v0.1.0 release archives; GoReleaser refreshes its version, URLs, and SHA-256 values on subsequent releases using a chore(cask) commit with [skip ci]. Homebrew casks are supported on macOS; Linux and Windows users can use Go installation or release archives.
+
+```sh
+brew trust --tap https://github.com/sxwebdev/xmigrator
+brew tap sxwebdev/xmigrator https://github.com/sxwebdev/xmigrator
+brew install --cask xmigrator
+xmigrator --version
+```
+
+The binaries are unsigned. The cask uses a declarative postflight step to remove quarantine from the installed xmigrator binary on macOS. Uninstalling the cask removes the executable and leaves application databases and migration files in place. A cask update failure after release publication can be retried on the original workflow commit; do not move the module tags.
 
 After publication, verify downloads through the normal Go proxy in a clean environment with GOWORK=off:
 

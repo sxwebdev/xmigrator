@@ -19,8 +19,8 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.27.1'
           cache: false
@@ -44,10 +44,10 @@ jobs:
       RELEASE_VERSION: ${{ inputs.version }}
       GORELEASER_CURRENT_TAG: ${{ inputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.27.1'
           cache-dependency-path: '**/go.sum'
@@ -55,6 +55,25 @@ jobs:
         run: |
           mkdir -p .artifacts
           go run tools/release.go --version "$RELEASE_VERSION" --notes .artifacts/release-notes.md
+      - name: Verify release history
+        shell: bash
+        run: |
+          previous_tag="$(
+            git tag --list 'v[0-9]*' --sort=-version:refname |
+              awk -v current="$RELEASE_VERSION" '/^v[01]\.[0-9]+\.[0-9]+$/ && $0 != current { print; exit }'
+          )"
+          if [[ -n "$previous_tag" ]]; then
+            latest_tag="$(printf '%s\n%s\n' "$previous_tag" "$RELEASE_VERSION" | sort -V | tail -n 1)"
+            if [[ "$latest_tag" != "$RELEASE_VERSION" ]]; then
+              echo "A newer release $previous_tag already exists." >&2
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$previous_tag^{commit}" HEAD; then
+              echo "Previous release $previous_tag is not an ancestor of this release." >&2
+              exit 1
+            fi
+            echo "GORELEASER_PREVIOUS_TAG=$previous_tag" >> "$GITHUB_ENV"
+          fi
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: v2.18.2
@@ -66,10 +85,10 @@ jobs:
       - name: Publish coordinated module tags
         run: go run tools/release.go --version "$RELEASE_VERSION" --push-tags
       - name: Publish GitHub Release
-        run: goreleaser release --clean --parallelism 2 --release-notes .artifacts/release-notes.md
+        run: goreleaser release --clean --parallelism 2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: release-${{ inputs.version }}
