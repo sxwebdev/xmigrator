@@ -1,0 +1,76 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Stable release version matching CHANGELOG.md (for example v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xmigrator-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.1'
+          cache: false
+      - name: Validate release inputs
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/master
+          go run tools/release.go --version "$RELEASE_VERSION"
+
+  checks:
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      GORELEASER_CURRENT_TAG: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.1'
+          cache-dependency-path: '**/go.sum'
+      - name: Prepare release notes
+        run: |
+          mkdir -p .artifacts
+          go run tools/release.go --version "$RELEASE_VERSION" --notes .artifacts/release-notes.md
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          version: v2.18.2
+          install-only: true
+      - name: Validate and build all targets before tagging
+        run: |
+          goreleaser check
+          goreleaser release --snapshot --clean --parallelism 2
+      - name: Publish coordinated module tags
+        run: go run tools/release.go --version "$RELEASE_VERSION" --push-tags
+      - name: Publish GitHub Release
+        run: goreleaser release --clean --parallelism 2 --release-notes .artifacts/release-notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-${{ inputs.version }}
+          path: .artifacts/

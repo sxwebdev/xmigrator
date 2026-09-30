@@ -10,3 +10,4 @@ Initial release:
 - Typed transaction hooks with explicit revisions, optional checksum verification, and pluggable logging.
 - Migration file creation, source validation, read-only status, scoped drop, and explicit down metadata repair.
 - urfave/cli v3 adapter and installable xmigrator command with PostgreSQL and SQLite engines.
+- Manual GitHub Actions releases with coordinated module tags, GoReleaser CLI archives, and SHA-256 checksums.

@@ -44,3 +44,11 @@ For backend changes, verify behavior against real databases: rolled-back DDL/dat
 Use `make sqlite-check` for the SQLite/executable matrix without PostgreSQL. Run `go run tools/dev.go verify-install` for release manifest/install changes; it uses a local proxy and does not publish. Run `go run tools/dev.go prove-regressions` when evaluating the regression suite; it temporarily mutates/restores sources, so avoid concurrent source editing.
 
 Select verification proportional to the change. Do not rerun destructive integration workflows for prose-only changes. Report exactly which checks ran and distinguish build portability from runtime testing on the target OS.
+
+## Release automation
+
+The release workflow is dispatched manually from master with a coordinated stable v0.x.y or v1.x.y version. The latest dated CHANGELOG.md entry drives local workspace replacements and install verification. Update repository dependency requirements together with that entry.
+
+`go run tools/release.go` validates release manifests, licenses, and notes without publishing. `make release-check` also runs release tooling tests and GoReleaser validation. `make release-snapshot` builds six CLI archives locally without publishing. The GitHub workflow runs the full CI matrix before atomically publishing five module tags and creating a GitHub Release using free GoReleaser.
+
+Do not invoke `--push-tags`, dispatch the release workflow, or publish a real release without explicit user authorization. A failed publication may already have published module tags; retry the original run on the same commit instead of moving tags. See docs/release.md for the recovery contract.
