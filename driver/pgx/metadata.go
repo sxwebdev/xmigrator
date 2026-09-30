@@ -60,7 +60,8 @@ func (d *Driver) inspect(ctx context.Context, q queryer) (bool, error) {
 		if !slices.Equal(columns, expected) {
 			return false, x.ErrMetadataConflict
 		}
-		rows, e = q.Query(ctx, "SELECT pg_catalog.pg_get_constraintdef(oid) FROM pg_catalog.pg_constraint WHERE conrelid=$1 ORDER BY 1", oid)
+		// PostgreSQL 18 also stores table NOT NULL constraints here; attnotnull above already verifies them.
+		rows, e = q.Query(ctx, "SELECT pg_catalog.pg_get_constraintdef(oid) FROM pg_catalog.pg_constraint WHERE conrelid=$1 AND contype <> 'n' ORDER BY 1", oid)
 		if e != nil {
 			return false, e
 		}
