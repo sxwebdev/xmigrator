@@ -28,6 +28,7 @@ build: workspace
 release-check:
 	go run tools/release.go
 	go test -race -count=1 tools/release.go tools/release_test.go
+	go test -race -count=1 tools/dev.go tools/dev_test.go
 	goreleaser check
 
 release-snapshot:

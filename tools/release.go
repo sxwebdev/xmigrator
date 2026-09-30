@@ -94,6 +94,7 @@ func prepareRelease(ctx context.Context, dir, requested string) (string, string,
 }
 
 func parseReleaseNotes(changelog, requested string) (string, string, error) {
+	changelog = strings.ReplaceAll(changelog, "\r\n", "\n")
 	match := releaseHeading.FindStringSubmatchIndex(changelog)
 	if match == nil {
 		return "", "", errors.New("changelog needs a version and date heading")

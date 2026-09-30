@@ -15,6 +15,7 @@ func TestReleaseNotes(t *testing.T) {
 		name, changelog, requested, version, notes string
 	}{
 		{"stable", "# Changelog\n\n## v0.1.0 — 2026-10-01\n\n- Initial release\n\n## v0.0.1 — 2026-09-01\n\n- Old", "v0.1.0", "v0.1.0", "- Initial release\n"},
+		{"crlf", "# Changelog\r\n\r\n## v0.1.0 — 2026-10-01\r\n\r\n- Initial release\r\n", "v0.1.0", "v0.1.0", "- Initial release\n"},
 		{"inferred", "## v1.2.3 — 2026-10-01\n\n- Stable", "", "v1.2.3", "- Stable\n"},
 		{"different_version", "## v0.1.0 — 2026-10-01\n\n- Stable", "v0.2.0", "", ""},
 		{"invalid_date", "## v0.1.0 — 2026-02-30\n\n- Stable", "", "", ""},

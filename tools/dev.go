@@ -95,11 +95,12 @@ func releaseVersion() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	match := regexp.MustCompile(`(?m)^## (v[01]\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)) — [0-9]{4}-[0-9]{2}-[0-9]{2}$`).FindSubmatch(data)
-	if match == nil {
+	normalized := strings.ReplaceAll(string(data), "\r\n", "\n")
+	match := regexp.MustCompile(`(?m)^## (v[^ ]+) — [0-9]{4}-[0-9]{2}-[0-9]{2}$`).FindStringSubmatch(normalized)
+	if match == nil || !regexp.MustCompile(`^v[01]\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$`).MatchString(match[1]) {
 		return "", errors.New("changelog needs a stable release version")
 	}
-	return string(match[1]), nil
+	return match[1], nil
 }
 
 func environment(values map[string]string) []string {

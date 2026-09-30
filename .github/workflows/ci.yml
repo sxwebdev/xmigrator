@@ -33,6 +33,7 @@ jobs:
           go-version: '1.27.1'
           cache-dependency-path: '**/go.sum'
       - run: go test -race -count=1 tools/release.go tools/release_test.go
+      - run: go test -race -count=1 tools/dev.go tools/dev_test.go
       - run: go run tools/dev.go check
       - run: go run tools/dev.go verify-install
       - run: go run tools/dev.go prove-regressions
@@ -42,6 +43,7 @@ jobs:
         with:
           name: checks-pg-${{ matrix.postgres }}
           path: .artifacts/
+          include-hidden-files: true
 
   platforms:
     strategy:
@@ -55,6 +57,7 @@ jobs:
         with:
           go-version: '1.27.1'
           cache-dependency-path: '**/go.sum'
+      - run: go test -race -count=1 tools/dev.go tools/dev_test.go
       - run: go run tools/dev.go check --sqlite-only
 
   release-snapshot:
@@ -78,3 +81,4 @@ jobs:
         with:
           name: release-snapshot
           path: .artifacts/release/
+          include-hidden-files: true
