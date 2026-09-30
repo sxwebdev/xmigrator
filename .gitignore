@@ -1,0 +1,44 @@
+# Local workspace and developer output
+/go.work
+/go.work.sum
+/build/
+/.artifacts/
+
+# Go test, profiling, and coverage output
+*.test
+*.out
+*.coverprofile
+coverage.*
+profile.cov
+
+# Compiled binaries and shared libraries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Local SQLite databases, journals, and migration locks
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.xmigrator.lock
+
+# Local credentials and machine-specific files
+.env
+.env.*
+!.env.example
+.DS_Store
+/.idea/
+/.vscode/
+/.agents/
+/.claude/
