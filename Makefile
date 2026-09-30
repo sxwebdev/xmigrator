@@ -1,4 +1,4 @@
-.PHONY: fmt workspace test check sqlite-check verify-install prove-regressions build
+.PHONY: fmt workspace test check sqlite-check verify-install prove-regressions build release-check release-snapshot
 
 fmt:
 	go fix ./...
@@ -24,3 +24,12 @@ prove-regressions:
 
 build: workspace
 	go build -o build/xmigrator ./cmd/xmigrator
+
+release-check:
+	go run tools/release.go
+	go test -race -count=1 tools/release.go tools/release_test.go
+	go test -race -count=1 tools/dev.go tools/dev_test.go
+	goreleaser check
+
+release-snapshot:
+	goreleaser release --snapshot --clean --parallelism 2

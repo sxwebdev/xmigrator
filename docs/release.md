@@ -40,20 +40,46 @@ CI checks PostgreSQL 14/17/18 on Linux and SQLite on macOS/Windows. A successful
 
 ## Preparing a version
 
-The first release's dependency versions and installation verification use v0.1.0. When changing the version, update requirements for repository modules in all published manifests together with version/replacements in tools/dev.go. Local replacements must not appear in published go.mod files.
+All five modules use a coordinated stable version, initially v0.1.0. Update requirements for repository modules in the published manifests together with the latest dated heading in CHANGELOG.md. Developer workspace generation and installation verification read that version from the changelog; no tooling version constant needs to be changed.
 
-Before tagging:
+Run the release preflight from the repository root:
 
-1. Review the changes, documentation, and release [changelog](../CHANGELOG.md), then create the release commit.
-2. Obtain successful full check, verify-install, and CI results for that commit.
-3. Verify LICENSE in every published module and ensure build, .artifacts, go.work, credentials, and database files are excluded from release files.
-4. Match dependent module versions to the tags that will be published.
+```sh
+go run tools/release.go --version v0.1.0
+```
 
-## Publishing
+It checks the latest changelog entry, nonempty notes, module paths, matching repository dependency versions, absence of published replace directives, and module licenses. Omitting --version selects the latest changelog version. Stable v0.x.y and v1.x.y releases are supported. Prereleases and v2+ require a separate versioning design.
 
-Go modules in subdirectories require tags prefixed with their directory. For the first coordinated release, all five tags must point to the verified release commit. Publish the core first, then drivers/adapter, then cmd. internal/integration gets no tag and is not installed by users.
+GoReleaser configuration is in [.goreleaser.yaml](../.goreleaser.yaml). CI validates it and builds snapshots on each branch push and pull request. To check packaging locally with GoReleaser 2.18.2:
 
-After publishing, verify downloads through the normal Go proxy in a clean environment with GOWORK=off:
+```sh
+make release-check
+make release-snapshot
+```
+
+Snapshots do not create tags or publish releases. Output is in .artifacts/release/: Linux, macOS, and Windows binaries for amd64/arm64, tar.gz archives (zip on Windows), and checksums.txt. Each archive contains the license, README, changelog, and documentation. Builds use CGO_ENABLED=0; the SQLite engine is included.
+
+## Publishing from GitHub Actions
+
+Merge the version and release notes into master, then open **Actions → release → Run workflow**, select **master**, and enter **v0.1.0**. The workflow is manual; merging a pull request does not publish a version automatically.
+
+The [release workflow](../.github/workflows/release.yml):
+
+1. Validates the branch, requested version, manifests, licenses, and changelog.
+2. Runs the complete reusable CI workflow: PostgreSQL 14/17/18, macOS/Windows, coverage, install verification, regression proofs, fuzzing, and a GoReleaser snapshot.
+3. Extracts that version's release notes and builds every CLI target before publishing tags.
+4. Creates all five module tags on the checked commit and sends them in one atomic Git push.
+5. Runs GoReleaser with the explicit root tag to publish one GitHub Release with archives and SHA-256 checksums.
+
+Only the publishing job receives contents:write. It uses the repository's GITHUB_TOKEN; no personal access token or GoReleaser Pro license is required. Run concurrency prevents two release workflows from publishing simultaneously. Repository rules must permit that token to create the release tags.
+
+Tags are never force-pushed. A tag pointing to another commit stops the workflow. A failed run can be rerun on the same commit: tags already pointing to it are reused. Once tags have been sent, modules may be installable even if the subsequent GitHub Release upload fails; rerun the failed workflow rather than moving tags. If the release already completed, issue a new version for changes.
+
+The workflow publishes the commit selected when it was dispatched, not a later master HEAD. If master advances while a failed release is being retried, rerun the original run to preserve that commit.
+
+## Checking the published release
+
+After publication, verify downloads through the normal Go proxy in a clean environment with GOWORK=off:
 
 ```sh
 go install github.com/sxwebdev/xmigrator/cmd/xmigrator@v0.1.0

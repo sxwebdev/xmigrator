@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"slices"
 	"sort"
@@ -68,6 +69,10 @@ func dispatch(ctx context.Context, args []string) error {
 }
 
 func workspace() error {
+	version, err := releaseVersion()
+	if err != nil {
+		return err
+	}
 	var b strings.Builder
 	b.WriteString("go 1.27.0\n\ntoolchain go1.27.1\n\nuse (\n")
 	for _, module := range modules {
@@ -79,10 +84,23 @@ func workspace() error {
 		if module != "." {
 			name += "/" + module
 		}
-		fmt.Fprintf(&b, " %s v0.1.0 => ./%s\n", name, module)
+		fmt.Fprintf(&b, " %s %s => ./%s\n", name, version, module)
 	}
 	b.WriteString(")\n")
 	return os.WriteFile("go.work", []byte(b.String()), 0o644)
+}
+
+func releaseVersion() (string, error) {
+	data, err := os.ReadFile("CHANGELOG.md")
+	if err != nil {
+		return "", err
+	}
+	normalized := strings.ReplaceAll(string(data), "\r\n", "\n")
+	match := regexp.MustCompile(`(?m)^## (v[^ ]+) — [0-9]{4}-[0-9]{2}-[0-9]{2}$`).FindStringSubmatch(normalized)
+	if match == nil || !regexp.MustCompile(`^v[01]\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$`).MatchString(match[1]) {
+		return "", errors.New("changelog needs a stable release version")
+	}
+	return match[1], nil
 }
 
 func environment(values map[string]string) []string {
@@ -318,7 +336,10 @@ func verifyInstall(ctx context.Context) error {
 	}
 	defer os.RemoveAll(temp)
 	proxy := filepath.Join(temp, "proxy")
-	const version = "v0.1.0"
+	version, err := releaseVersion()
+	if err != nil {
+		return err
+	}
 	for _, module := range modules[:len(modules)-1] {
 		source := filepath.Join(root, module)
 		name := prefix
@@ -338,7 +359,7 @@ func verifyInstall(ctx context.Context) error {
 		}
 		for suffix, content := range map[string][]byte{
 			".mod":  manifest,
-			".info": []byte(`{"Version":"v0.1.0","Time":"2026-09-30T00:00:00Z"}`),
+			".info": []byte(fmt.Sprintf(`{"Version":%q,"Time":"2026-10-01T00:00:00Z"}`, version)),
 		} {
 			if err := os.WriteFile(filepath.Join(versions, version+suffix), content, 0o644); err != nil {
 				return err

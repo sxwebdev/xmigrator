@@ -103,4 +103,6 @@ For PostgreSQL, use `--driver pgx` and a PostgreSQL connection string through `-
 
 See the [documentation](docs/README.md) for drivers, migration files, hooks, CLI integration, and operations.
 
+Release archives are available on [GitHub Releases](https://github.com/sxwebdev/xmigrator/releases). See the [release guide](docs/release.md) for maintainers.
+
 Changes are tracked in the [changelog](CHANGELOG.md). Licensed under [MIT](LICENSE).
