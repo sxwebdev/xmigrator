@@ -1,5 +1,10 @@
 # xmigrator
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/sxwebdev/xmigrator.svg)](https://pkg.go.dev/github.com/sxwebdev/xmigrator)
+[![Go Version](https://img.shields.io/badge/go-1.27-blue)](https://go.dev/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sxwebdev/xmigrator)](https://goreportcard.com/report/github.com/sxwebdev/xmigrator)
+[![License](https://img.shields.io/github/license/sxwebdev/xmigrator)](LICENSE)
+
 A SQL migration library for Go 1.27+ with PostgreSQL (pgx v5) and SQLite support. The core has no external dependencies; database drivers, CLI integrations, and the standalone command are separate Go modules.
 
 - Apply or roll back migrations with a step limit.
@@ -70,7 +75,15 @@ See the [usage guide](docs/usage.md) for migration files, hooks, configuration, 
 
 ## Standalone CLI
 
-Install the standalone command:
+Install on macOS with Homebrew:
+
+```sh
+brew trust --tap https://github.com/sxwebdev/xmigrator
+brew tap sxwebdev/xmigrator https://github.com/sxwebdev/xmigrator
+brew install --cask xmigrator
+```
+
+Or install with Go on any supported platform:
 
 ```sh
 go install github.com/sxwebdev/xmigrator/cmd/xmigrator@latest

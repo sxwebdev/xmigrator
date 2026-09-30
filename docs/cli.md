@@ -2,6 +2,16 @@
 
 ## Installation and usage
 
+On macOS:
+
+```sh
+brew trust --tap https://github.com/sxwebdev/xmigrator
+brew tap sxwebdev/xmigrator https://github.com/sxwebdev/xmigrator
+brew install --cask xmigrator
+```
+
+Or install with Go on any supported platform:
+
 ```sh
 go install github.com/sxwebdev/xmigrator/cmd/xmigrator@latest
 xmigrator --version

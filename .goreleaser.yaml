@@ -21,8 +21,9 @@ builds:
       - -s -w -X main.version={{ if .IsSnapshot }}{{ .Version }}{{ else }}{{ .Tag }}{{ end }}
 
 archives:
-  - ids: [xmigrator]
-    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+  - id: xmigrator
+    ids: [xmigrator]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
     format_overrides:
       - goos: windows
@@ -37,11 +38,74 @@ checksum:
   name_template: checksums.txt
 
 changelog:
-  disable: true
+  use: git
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Performance
+      regexp: '^.*?perf(\(.+\))??!?:.+$'
+      order: 2
+    - title: Refactoring
+      regexp: '^.*?refactor(\(.+\))??!?:.+$'
+      order: 3
+    - title: Documentation
+      regexp: '^.*?docs(\(.+\))??!?:.+$'
+      order: 4
+    - title: Tests
+      regexp: '^.*?test(\(.+\))??!?:.+$'
+      order: 5
+    - title: Dependencies
+      regexp: '(^.*?(build|chore)\(deps\)!?:.+$|^.*?[Bb]ump .+$)'
+      order: 6
+    - title: Build & CI
+      regexp: '^.*?(build|ci)(\(.+\))??!?:.+$'
+      order: 7
+    # Catch-all: a new commit convention must not silently hide release notes.
+    - title: Other changes
+      order: 999
+  filters:
+    exclude:
+      # GoReleaser writes this generated cask update after publishing a release;
+      # it belongs to the previous release and must not leak into the next one.
+      - '^chore\(cask\)!?:'
 
 release:
   github:
     owner: sxwebdev
     name: xmigrator
-  name_template: '{{ .Tag }}'
-  prerelease: false
+  name_template: "{{ .Tag }}"
+  prerelease: "false"
+  mode: replace
+  footer: |
+
+    **Full changelog**: https://github.com/sxwebdev/xmigrator/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+homebrew_casks:
+  - name: xmigrator
+    ids: [xmigrator]
+    repository:
+      owner: sxwebdev
+      name: xmigrator
+      branch: master
+    directory: Casks
+    commit_msg_template: "chore(cask): release {{ .Tag }} [skip ci]"
+    homepage: "https://github.com/sxwebdev/xmigrator"
+    description: "Transactional SQL migrations for PostgreSQL and SQLite"
+    # Release binaries are unsigned; remove quarantine only from this binary
+    # using Homebrew's declarative postflight DSL.
+    custom_block: |
+      define_singleton_method(:xmigrator_postflight_steps) do
+        postflight_steps do
+          on_macos do
+            run "/usr/bin/xattr",
+                args: ["-d", "-r", "com.apple.quarantine", "{{ "{{staged_path}}" }}/xmigrator"]
+          end
+        end
+      end
+
+      xmigrator_postflight_steps
